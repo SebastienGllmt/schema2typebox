@@ -36,6 +36,30 @@ describe("when running the programmatic usage", () => {
       expectedTypebox
     );
   });
+  test("generated typebox name based on title attribute support spacing", async () => {
+    const dummySchema = `
+    {
+      "title": "My Contract",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
+    }
+    `;
+    const expectedTypebox = addCommentThatCodeIsGenerated(`
+    import { Static, Type } from "@sinclair/typebox";
+
+    export type MyContract = Static<typeof MyContract>;
+    export const MyContract = Type.Object({name: Type.String()}, { $id: "MyContract" });
+    `);
+    await expectEqualIgnoreFormatting(
+      await schema2typebox({ input: dummySchema }),
+      expectedTypebox
+    );
+  });
   describe("when working with files containing $refs (sanity check of refparser library)", () => {
     test("object with $ref pointing to external files in relative path", async () => {
       const dummySchema = `

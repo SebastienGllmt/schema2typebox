@@ -112,11 +112,21 @@ const createImportStatements = () => {
   ].join("\n");
 };
 
+const toPascalCase = (str: string) => {
+  return str
+    .split(/[\s_]+/) // split on spaces or underscores
+    .filter(Boolean) // remove empty strings
+    .map(word => {
+      return word.charAt(0).toUpperCase() + word.slice(1)
+    })
+    .join('')
+};
+
 const createExportNameForSchema = (schema: JSONSchema7Definition) => {
   if (isBoolean(schema)) {
     return "T";
   }
-  return schema["title"] ?? "T";
+  return toPascalCase(schema["title"] ?? "T");
 };
 
 /**
