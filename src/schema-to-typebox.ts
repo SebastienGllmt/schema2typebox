@@ -126,7 +126,12 @@ const createExportNameForSchema = (schema: JSONSchema7Definition) => {
   if (isBoolean(schema)) {
     return "T";
   }
-  return toPascalCase(schema["title"] ?? "T");
+  const title = schema["title"] ?? "T";
+  // only convert to PascalCase if there is a space in the name for backwards compatibility
+  if (title.includes(" ")) {
+    return toPascalCase(title);
+  }
+  return title;
 };
 
 /**
