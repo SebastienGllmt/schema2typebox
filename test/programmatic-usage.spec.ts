@@ -36,8 +36,11 @@ describe("when running the programmatic usage", () => {
         const expectedTypebox = addCommentThatCodeIsGenerated(`
     import { Static, Type } from "@sinclair/typebox";
 
+    export const Module = Type.Module({
+      ${expectedName}: Type.Object({ name: Type.String() }, { $id: "${expectedName}" }),
+    });
+    export const ${expectedName} = Module.Import("${expectedName}");
     export type ${expectedName} = Static<typeof ${expectedName}>;
-    export const ${expectedName} = Type.Object({name: Type.String()}, { $id: "${expectedName}" });
     `);
         await expectEqualIgnoreFormatting(
           await schema2typebox({ input: dummySchema }),
@@ -123,22 +126,25 @@ describe("when running the programmatic usage", () => {
       const expectedTypebox = addCommentThatCodeIsGenerated(`
       import { Static, Type } from "@sinclair/typebox";
 
-
+      export const Module = Type.Module({
+        Contract: Type.Object({
+          person: Type.Object({
+            name: Type.String({ maxLength: 100 }),
+            age: Type.Number({ minimum: 18 }),
+          }),
+          status: Type.Optional(
+            Type.Union([
+              Type.Literal("unknown"),
+              Type.Literal("accepted"),
+              Type.Literal("denied"),
+            ])
+          ),
+        },
+        { $id: "Contract" }
+        )
+      });
+      export const Contract = Module.Import("Contract");
       export type Contract = Static<typeof Contract>;
-      export const Contract = Type.Object({
-        person: Type.Object({
-          name: Type.String({ maxLength: 100 }),
-          age: Type.Number({ minimum: 18 }),
-        }),
-        status: Type.Optional(
-          Type.Union([
-            Type.Literal("unknown"),
-            Type.Literal("accepted"),
-            Type.Literal("denied"),
-          ])
-        ),
-      },
-      { $id: "Contract" });
     `);
 
       const inputPaths = ["person.json", "status.json"].flatMap((currItem) => {
@@ -198,18 +204,23 @@ describe("when running the programmatic usage", () => {
       const expectedTypebox = addCommentThatCodeIsGenerated(`
       import { Static, Type } from "@sinclair/typebox";
 
+       export const Module = Type.Module({
+        T: Type.Union(
+          [
+            Type.Object({
+              type: Type.Literal("cat"),
+              name: Type.String({ maxLength: 100 }),
+            }),
+            Type.Object({
+              type: Type.Literal("dog"),
+              name: Type.String({ maxLength: 100 }),
+            }),
+          ],
+          { $id: "T" }
+        )
+      });
+      export const T = Module.Import("T");
       export type T = Static<typeof T>;
-      export const T = Type.Union([
-        Type.Object({
-          type: Type.Literal("cat"),
-          name: Type.String({ maxLength: 100 }),
-        }),
-        Type.Object({
-          type: Type.Literal("dog"),
-          name: Type.String({ maxLength: 100 }),
-        }),
-      ],
-      { $id: "T" });
     `);
 
       const inputPaths = ["cat.json", "dog.json"].flatMap((currItem) => {
@@ -247,20 +258,23 @@ describe("when running the programmatic usage", () => {
       const expectedTypebox = addCommentThatCodeIsGenerated(`
       import { Static, Type } from "@sinclair/typebox";
 
+      export const Module = Type.Module({
+        T: Type.Union(
+          [
+            Type.Object({
+              type: Type.Literal("cat"),
+              name: Type.String({ maxLength: 100 }),
+            }),
+            Type.Object({
+              type: Type.Literal("dog"),
+              name: Type.String({ maxLength: 100 }),
+            }),
+          ],
+          { $id: "T" }
+        )
+      });
+      export const T = Module.Import("T");
       export type T = Static<typeof T>;
-      export const T = Type.Union(
-        [
-          Type.Object({
-            type: Type.Literal("cat"),
-            name: Type.String({ maxLength: 100 }),
-          }),
-          Type.Object({
-            type: Type.Literal("dog"),
-            name: Type.String({ maxLength: 100 }),
-          }),
-        ],
-        { $id: "T" }
-      );
     `);
 
       await expectEqualIgnoreFormatting(
@@ -316,11 +330,11 @@ describe("when running the programmatic usage", () => {
         options: SchemaOptions = {}
       ) => Type.Unsafe<Static<TUnion<T>>>({ ...options, [Kind]: "ExtendedOneOf", oneOf });
 
+      export const Module = Type.Module({
+        T: Type.Object({ a: OneOf([Type.String(), Type.Number()]) }, { $id: "T" }),
+      });
+      export const T = Module.Import("T");
       export type T = Static<typeof T>;
-      export const T = Type.Object(
-        { a: OneOf([Type.String(), Type.Number()]) },
-        { $id: "T" }
-      );
     `);
     await expectEqualIgnoreFormatting(
       await schema2typebox({ input: dummySchema }),
