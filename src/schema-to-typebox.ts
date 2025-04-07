@@ -1,4 +1,5 @@
 import $Refparser from "@apidevtools/json-schema-ref-parser";
+import camelcase from "camelcase";
 import { isBoolean } from "fp-ts/lib/boolean";
 import { isNumber } from "fp-ts/lib/number";
 import { isString } from "fp-ts/lib/string";
@@ -112,24 +113,20 @@ const createImportStatements = () => {
   ].join("\n");
 };
 
-const toPascalCase = (str: string) => {
-  return str
-    .split(/[\s_]+/) // split on spaces or underscores
-    .filter(Boolean) // remove empty strings
-    .map(word => {
-      return word.charAt(0).toUpperCase() + word.slice(1)
-    })
-    .join('')
-};
-
 const createExportNameForSchema = (schema: JSONSchema7Definition) => {
   if (isBoolean(schema)) {
     return "T";
   }
   const title = schema["title"] ?? "T";
-  // only convert to PascalCase if there is a space in the name for backwards compatibility
-  if (title.includes(" ")) {
-    return toPascalCase(title);
+  // converting these cases to pascalCase to ensure the resulting name is a
+  // valid name for a typescript type. Based on: https://github.com/xddq/schema2typebox/pull/53
+  if (
+    title.includes(" ") ||
+    title.includes("-") ||
+    title.includes("_") ||
+    title.includes(".")
+  ) {
+    return camelcase(title, { pascalCase: true });
   }
   return title;
 };

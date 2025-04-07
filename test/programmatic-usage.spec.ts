@@ -12,10 +12,18 @@ import { buildOsIndependentPath, expectEqualIgnoreFormatting } from "./util";
 const SHELLJS_RETURN_CODE_OK = 0;
 
 describe("when running the programmatic usage", () => {
-  test("generated typebox names are based on title attribute", async () => {
-    const dummySchema = `
+  describe("when generating typescript type and typebox value names", () => {
+    test.each([
+      { title: "Dummy-Title", expectedName: "DummyTitle" },
+      { title: "dummy Title", expectedName: "DummyTitle" },
+      { title: "dummy_title", expectedName: "DummyTitle" },
+      { title: "dummy.title", expectedName: "DummyTitle" },
+    ])(
+      "generates PascalCase when title contains at least one of '. -_' characters. testing with: $title expecting: $expectedName",
+      async ({ title, expectedName }) => {
+        const dummySchema = `
     {
-      "title": "Contract",
+      "title": "${title}",
       "type": "object",
       "properties": {
         "name": {
@@ -25,21 +33,28 @@ describe("when running the programmatic usage", () => {
       "required": ["name"]
     }
     `;
-    const expectedTypebox = addCommentThatCodeIsGenerated(`
+        const expectedTypebox = addCommentThatCodeIsGenerated(`
     import { Static, Type } from "@sinclair/typebox";
 
-    export type Contract = Static<typeof Contract>;
-    export const Contract = Type.Object({name: Type.String()}, { $id: "Contract" });
+    export type ${expectedName} = Static<typeof ${expectedName}>;
+    export const ${expectedName} = Type.Object({name: Type.String()}, { $id: "${expectedName}" });
     `);
-    await expectEqualIgnoreFormatting(
-      await schema2typebox({ input: dummySchema }),
-      expectedTypebox
+        await expectEqualIgnoreFormatting(
+          await schema2typebox({ input: dummySchema }),
+          expectedTypebox
+        );
+      }
     );
-  });
-  test("generated typebox name based on title attribute support spacing", async () => {
-    const dummySchema = `
+    test.each([
+      { title: "dummyTitle", expectedName: "DummyTitle" },
+      { title: "DummyTitle", expectedName: "DummyTitle" },
+      { title: "dummytitle", expectedName: "Dummytitle" },
+    ])(
+      "enforces capitel character and keeps the rest when title does not contain any characters of '. -_'. testing with: $title expecting: $expectedName",
+      async ({ title, expectedName }) => {
+        const dummySchema = `
     {
-      "title": "My Contract",
+      "title": "${title}",
       "type": "object",
       "properties": {
         "name": {
@@ -49,15 +64,17 @@ describe("when running the programmatic usage", () => {
       "required": ["name"]
     }
     `;
-    const expectedTypebox = addCommentThatCodeIsGenerated(`
+        const expectedTypebox = addCommentThatCodeIsGenerated(`
     import { Static, Type } from "@sinclair/typebox";
 
-    export type MyContract = Static<typeof MyContract>;
-    export const MyContract = Type.Object({name: Type.String()}, { $id: "MyContract" });
+    export type ${expectedName} = Static<typeof ${title}>;
+    export const ${title} = Type.Object({name: Type.String()}, { $id: "${title}" });
     `);
-    await expectEqualIgnoreFormatting(
-      await schema2typebox({ input: dummySchema }),
-      expectedTypebox
+        await expectEqualIgnoreFormatting(
+          await schema2typebox({ input: dummySchema }),
+          expectedTypebox
+        );
+      }
     );
   });
   describe("when working with files containing $refs (sanity check of refparser library)", () => {
