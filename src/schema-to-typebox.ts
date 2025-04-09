@@ -40,10 +40,10 @@ type ModuleEntries = Map<string, Code>;
 export const schema2typebox = async (jsonSchema: string) => {
   const schemaObj = JSON.parse(jsonSchema);
   const dereferencedSchema = (await $Refparser.dereference(
-    schemaObj,
+    schemaObj
   )) as JSONSchema7Definition;
-const exportedName = createExportNameForSchema(dereferencedSchema);
-  
+  const exportedName = createExportNameForSchema(dereferencedSchema);
+
   // Ensuring that generated typebox code will contain an '$id' field.
   // see: https://github.com/xddq/schema2typebox/issues/32
   if (
@@ -54,13 +54,17 @@ const exportedName = createExportNameForSchema(dereferencedSchema);
   }
   const entries: ModuleEntries = new Map<string, Code>();
   collect(dereferencedSchema, entries);
-  const typeBoxType = Array.from(entries.entries()).map(([key, value]) => {
-    return `${key}: ${value}`
-  }).join(",\n");
-  const typeAliases = Array.from(entries.keys()).map((key) => {
-    return `export const ${key} = Module.Import('${key}');
-    ${createExportedTypeForName(key)};`
-  }).join("\n");
+  const typeBoxType = Array.from(entries.entries())
+    .map(([key, value]) => {
+      return `${key}: ${value}`;
+    })
+    .join(",\n");
+  const typeAliases = Array.from(entries.keys())
+    .map((key) => {
+      return `export const ${key} = Module.Import('${key}');
+    ${createExportedTypeForName(key)};`;
+    })
+    .join("\n");
 
   return `${createImportStatements()}
 
@@ -75,8 +79,11 @@ ${typeAliases}`;
  *
  * @throws Error if an unexpected schema (one with no matching parser) was given
  */
-export const collect = (schema: JSONSchema7Definition, entries: ModuleEntries): Code => {
-  if (typeof schema === 'object' && schema.$id !== undefined) {
+export const collect = (
+  schema: JSONSchema7Definition,
+  entries: ModuleEntries
+): Code => {
+  if (typeof schema === "object" && schema.$id !== undefined) {
     const exportedName = createExportNameForSchema(schema);
     if (entries.has(exportedName)) {
       return `Type.Ref("${exportedName}")`;
@@ -119,7 +126,7 @@ export const collect = (schema: JSONSchema7Definition, entries: ModuleEntries): 
       )}`
     );
   })();
-  if (typeof schema === 'object' && schema.$id !== undefined) {
+  if (typeof schema === "object" && schema.$id !== undefined) {
     const exportedName = createExportNameForSchema(schema);
     entries.set(exportedName, innerSchema);
     return `Type.Ref("${exportedName}")`;
@@ -276,7 +283,10 @@ export const parseType = (type: JSONSchema7Type): Code => {
   }
 };
 
-export const parseAnyOf = (schema: AnyOfSchema, entries: ModuleEntries): Code => {
+export const parseAnyOf = (
+  schema: AnyOfSchema,
+  entries: ModuleEntries
+): Code => {
   const schemaOptions = parseSchemaOptions(schema);
   const code = schema.anyOf.reduce<string>((acc, schema) => {
     return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries)}`;
@@ -286,7 +296,10 @@ export const parseAnyOf = (schema: AnyOfSchema, entries: ModuleEntries): Code =>
     : `Type.Union([${code}], ${schemaOptions})`;
 };
 
-export const parseAllOf = (schema: AllOfSchema, entries: ModuleEntries): Code => {
+export const parseAllOf = (
+  schema: AllOfSchema,
+  entries: ModuleEntries
+): Code => {
   const schemaOptions = parseSchemaOptions(schema);
   const code = schema.allOf.reduce<string>((acc, schema) => {
     return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries)}`;
@@ -296,7 +309,10 @@ export const parseAllOf = (schema: AllOfSchema, entries: ModuleEntries): Code =>
     : `Type.Intersect([${code}], ${schemaOptions})`;
 };
 
-export const parseOneOf = (schema: OneOfSchema, entries: ModuleEntries): Code => {
+export const parseOneOf = (
+  schema: OneOfSchema,
+  entries: ModuleEntries
+): Code => {
   const schemaOptions = parseSchemaOptions(schema);
   const code = schema.oneOf.reduce<string>((acc, schema) => {
     return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries)}`;
@@ -313,7 +329,10 @@ export const parseNot = (schema: NotSchema, entries: ModuleEntries): Code => {
     : `Type.Not(${collect(schema.not, entries)}, ${schemaOptions})`;
 };
 
-export const parseArray = (schema: ArraySchema, entries: ModuleEntries): Code => {
+export const parseArray = (
+  schema: ArraySchema,
+  entries: ModuleEntries
+): Code => {
   const schemaOptions = parseSchemaOptions(schema);
   if (Array.isArray(schema.items)) {
     const code = schema.items.reduce<string>((acc, schema) => {
@@ -323,16 +342,22 @@ export const parseArray = (schema: ArraySchema, entries: ModuleEntries): Code =>
       ? `Type.Array(Type.Union(${code}))`
       : `Type.Array(Type.Union(${code}),${schemaOptions})`;
   }
-  const itemsType = schema.items ? collect(schema.items, entries) : "Type.Unknown()";
+  const itemsType = schema.items
+    ? collect(schema.items, entries)
+    : "Type.Unknown()";
   return schemaOptions === undefined
     ? `Type.Array(${itemsType})`
     : `Type.Array(${itemsType},${schemaOptions})`;
 };
 
-export const parseWithMultipleTypes = (schema: MultipleTypesSchema, entries: ModuleEntries): Code => {
+export const parseWithMultipleTypes = (
+  schema: MultipleTypesSchema,
+  entries: ModuleEntries
+): Code => {
   const code = schema.type.reduce<string>((acc, typeName) => {
     return (
-      acc + `${acc === "" ? "" : ",\n"} ${parseTypeName(typeName, schema, entries)}`
+      acc +
+      `${acc === "" ? "" : ",\n"} ${parseTypeName(typeName, schema, entries)}`
     );
   }, "");
   return `Type.Union([${code}])`;

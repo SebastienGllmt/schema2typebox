@@ -26,7 +26,7 @@ describe("when testing against real world schemas", () => {
   test("works for recursive", async () => {
     const originalCwd = process.cwd();
     process.chdir(buildOsIndependentPath([process.cwd(), "test", "fixture"]));
-    
+
     try {
       const inputSchema = readFileSync("recursive.json", "utf-8");
       const result = await schema2typebox({ input: inputSchema });
