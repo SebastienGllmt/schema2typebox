@@ -53,7 +53,7 @@ describe("when running the programmatic usage", () => {
       { title: "DummyTitle", expectedName: "DummyTitle" },
       { title: "dummytitle", expectedName: "Dummytitle" },
     ])(
-      "enforces capitel character and keeps the rest when title does not contain any characters of '. -_'. testing with: $title expecting: $expectedName",
+      "enforces capital character and keeps the rest when title does not contain any characters of '. -_'. testing with: $title expecting: $expectedName",
       async ({ title, expectedName }) => {
         const dummySchema = `
     {
@@ -70,8 +70,11 @@ describe("when running the programmatic usage", () => {
         const expectedTypebox = addCommentThatCodeIsGenerated(`
     import { Static, Type } from "@sinclair/typebox";
 
+    export const Module = Type.Module({
+      ${title}: Type.Object({ name: Type.String() }, { $id: "${title}" }),
+    });
+    export const ${title} = Module.Import("${title}");
     export type ${expectedName} = Static<typeof ${title}>;
-    export const ${title} = Type.Object({name: Type.String()}, { $id: "${title}" });
     `);
         await expectEqualIgnoreFormatting(
           await schema2typebox({ input: dummySchema }),
