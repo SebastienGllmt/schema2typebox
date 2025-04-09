@@ -1,3 +1,7 @@
+# 1.9.0
+
+- allow glob to be used as `input` when using the CLI [src](https://github.com/xddq/schema2typebox/pull/55)
+
 # 1.8.0
 
 - migrate to the Typebox [modules](https://github.com/sinclairzx81/typebox?tab=readme-ov-file#types-modules) to support recursive types [src](https://github.com/xddq/schema2typebox/pull/51)
