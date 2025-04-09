@@ -32,28 +32,26 @@ import {
   isSchemaWithMultipleTypes,
   isUnknownSchema,
 } from "./schema-matchers";
+// import util from 'node:util';
 
 type Code = string;
 type ModuleEntries = Map<string, Code>;
 
 /** Generates TypeBox code from a given JSON schema */
-export const schema2typebox = async (jsonSchema: string) => {
-  const schemaObj = JSON.parse(jsonSchema);
-  const dereferencedSchema = (await $Refparser.dereference(
-    schemaObj
-  )) as JSONSchema7Definition;
-  const exportedName = createExportNameForSchema(dereferencedSchema);
-
-  // Ensuring that generated typebox code will contain an '$id' field.
-  // see: https://github.com/xddq/schema2typebox/issues/32
-  if (
-    typeof dereferencedSchema !== "boolean" &&
-    dereferencedSchema.$id === undefined
-  ) {
-    dereferencedSchema.$id = exportedName;
-  }
+export const schema2typebox = async (jsonSchema: string | string[]) => {
   const entries: ModuleEntries = new Map<string, Code>();
-  collect(dereferencedSchema, entries);
+  const schemas = Array.isArray(jsonSchema) ? jsonSchema : [jsonSchema];
+  const parsedSchemas = await Promise.all(
+    schemas.map((jsonSchema) => {
+      return $Refparser.dereference(
+        JSON.parse(jsonSchema)
+      ) as JSONSchema7Definition;
+    })
+  );
+  for (let i = 0; i < parsedSchemas.length; i++) {
+    const parsedSchema = parsedSchemas[i]!;
+    parseSchema(parsedSchema, entries);
+  }
   const typeBoxType = Array.from(entries.entries())
     .map(([key, value]) => {
       return `${key}: ${value}`;
@@ -71,6 +69,23 @@ export const schema2typebox = async (jsonSchema: string) => {
 ${typeBoxType.includes("OneOf([") ? createOneOfTypeboxSupportCode() : ""}
 export const Module = Type.Module({${typeBoxType}});
 ${typeAliases}`;
+};
+
+const parseSchema = (
+  dereferencedSchema: JSONSchema7Definition,
+  entries: ModuleEntries
+) => {
+  const exportedName = createExportNameForSchema(dereferencedSchema);
+
+  // Ensuring that generated typebox code will contain an '$id' field.
+  // see: https://github.com/xddq/schema2typebox/issues/32
+  if (
+    typeof dereferencedSchema !== "boolean" &&
+    dereferencedSchema.$id === undefined
+  ) {
+    dereferencedSchema.$id = exportedName;
+  }
+  collect(dereferencedSchema, entries);
 };
 
 /**

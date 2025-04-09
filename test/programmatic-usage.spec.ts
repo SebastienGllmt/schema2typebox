@@ -344,4 +344,46 @@ describe("when running the programmatic usage", () => {
       expectedTypebox
     );
   });
+  test("generated typebox names are based on title attribute", async () => {
+    const dummySchema1 = `
+    {
+      "title": "Contract1",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
+    }
+    `;
+    const dummySchema2 = `
+    {
+      "title": "Contract2",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
+    }
+    `;
+    const expectedTypebox = addCommentThatCodeIsGenerated(`
+    import { Static, Type } from "@sinclair/typebox";
+
+    export const Module = Type.Module({
+      Contract1: Type.Object({ name: Type.String() }, { $id: "Contract1" }),
+      Contract2: Type.Object({ name: Type.String() }, { $id: "Contract2" }),
+    });
+    export const Contract1 = Module.Import("Contract1");
+    export type Contract1 = Static<typeof Contract1>;
+    export const Contract2 = Module.Import("Contract2");
+    export type Contract2 = Static<typeof Contract2>;
+    `);
+    await expectEqualIgnoreFormatting(
+      await schema2typebox({ input: [dummySchema1, dummySchema2] }),
+      expectedTypebox
+    );
+  });
 });
