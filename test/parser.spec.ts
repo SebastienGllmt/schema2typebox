@@ -34,7 +34,7 @@ describe("parser unit tests", () => {
         type: "object",
         properties: undefined,
       };
-      const result = parseObject(dummySchema, new Map());
+      const result = parseObject(dummySchema, new Map(), false);
       expect(result).toContain("Type.Unknown");
     });
     it("creates code with attributes for each property", async () => {
@@ -50,7 +50,7 @@ describe("parser unit tests", () => {
         },
         required: ["b"],
       };
-      const result = parseObject(dummySchema, new Map());
+      const result = parseObject(dummySchema, new Map(), false);
       const expectedResult = `Type.Object({a: Type.Optional(Type.Number()),\n b: Type.String()})`;
       await expectEqualIgnoreFormatting(result, expectedResult);
     });
@@ -90,7 +90,7 @@ describe("parser unit tests", () => {
           "$",
         ],
       };
-      const result = parseObject(dummySchema, new Map());
+      const result = parseObject(dummySchema, new Map(), false);
       const expectedResult = `Type.Object({"6": Type.Boolean(),\n "@prop": Type.String(),\n unquoted: Type.Number(),\n __underscores: Type.String(),\n " spaces are weirdly valid ": Type.Number(),\n "with-hyphen": Type.String(),\n $: Type.String()})`;
       await expectEqualIgnoreFormatting(result, expectedResult);
     });
@@ -108,7 +108,7 @@ describe("parser unit tests", () => {
         },
         required: ["b"],
       };
-      const result = parseObject(dummySchema, new Map());
+      const result = parseObject(dummySchema, new Map(), false);
       const expectedResult = `Type.Object({a: Type.Optional(Type.Number()),\n b: Type.String()}, { $id: "AnyStringHere" })`;
       await expectEqualIgnoreFormatting(expectedResult, result);
     });
@@ -120,7 +120,7 @@ describe("parser unit tests", () => {
         title: "Status",
         enum: ["unknown", 1, null],
       };
-      const result = parseEnum(dummySchema);
+      const result = parseEnum(dummySchema, false);
       expect(result).toContain("Type.Union");
     });
     it("creates code with schemaOptions", () => {
@@ -129,7 +129,7 @@ describe("parser unit tests", () => {
         title: "Status",
         enum: ["unknown", 1, null],
       };
-      const result = parseEnum(dummySchema);
+      const result = parseEnum(dummySchema, false);
       expect(result).toContain("Type.Union");
       expect(result).toContain('{"$id":"AnyStringHere"}');
     });
@@ -156,7 +156,7 @@ describe("parser unit tests", () => {
           },
         ],
       };
-      const result = parseAnyOf(dummySchema, new Map());
+      const result = parseAnyOf(dummySchema, new Map(), false);
       expect(result).toContain("Type.Union");
     });
     it("creates one type per list of items inside anyOf", () => {
@@ -170,7 +170,7 @@ describe("parser unit tests", () => {
           },
         ],
       };
-      const result = parseAnyOf(dummySchema, new Map());
+      const result = parseAnyOf(dummySchema, new Map(), false);
       expect(result).toContain("Type.String()");
       expect(result).toContain("Type.Number()");
     });
@@ -186,7 +186,7 @@ describe("parser unit tests", () => {
           },
         ],
       };
-      const result = parseAnyOf(dummySchema, new Map());
+      const result = parseAnyOf(dummySchema, new Map(), false);
       expect(result).toContain("Type.Union");
       expect(result).toContain('{"$id":"AnyStringHere"}');
     });
@@ -201,7 +201,7 @@ describe("parser unit tests", () => {
           },
         ],
       };
-      const result = parseAllOf(schema, new Map());
+      const result = parseAllOf(schema, new Map(), false);
       expect(result).toContain("Type.Intersect");
     });
     it("creates one type per list of items inside allOf", () => {
@@ -215,7 +215,7 @@ describe("parser unit tests", () => {
           },
         ],
       };
-      const result = parseAllOf(schema, new Map());
+      const result = parseAllOf(schema, new Map(), false);
       expect(result).toContain(`Type.String()`);
       expect(result).toContain(`Type.Number()`);
     });
@@ -228,7 +228,7 @@ describe("parser unit tests", () => {
           },
         ],
       };
-      const result = parseAllOf(schema, new Map());
+      const result = parseAllOf(schema, new Map(), false);
       expect(result).toContain('{"$id":"AnyStringHere"}');
     });
   });
@@ -242,7 +242,7 @@ describe("parser unit tests", () => {
           },
         ],
       };
-      const result = parseOneOf(schema, new Map());
+      const result = parseOneOf(schema, new Map(), false);
       expect(result).toContain(`OneOf`);
     });
     it("creates one type per list of items inside oneOf", () => {
@@ -256,7 +256,7 @@ describe("parser unit tests", () => {
           },
         ],
       };
-      const result = parseOneOf(schema, new Map());
+      const result = parseOneOf(schema, new Map(), false);
       expect(result).toContain(`Type.String()`);
       expect(result).toContain(`Type.Number()`);
     });
@@ -269,7 +269,7 @@ describe("parser unit tests", () => {
           },
         ],
       };
-      const result = parseOneOf(schema, new Map());
+      const result = parseOneOf(schema, new Map(), false);
       expect(result).toContain('{"$id":"AnyStringHere"}');
     });
   });
@@ -281,7 +281,7 @@ describe("parser unit tests", () => {
           type: "number",
         },
       };
-      const result = parseNot(schema, new Map());
+      const result = parseNot(schema, new Map(), false);
       expect(result).toContain(`Type.Not`);
     });
     it("creates code with schemaOptions", () => {
@@ -291,7 +291,7 @@ describe("parser unit tests", () => {
           type: "number",
         },
       };
-      const result = parseNot(schema, new Map());
+      const result = parseNot(schema, new Map(), false);
       expect(result).toContain('{"$id":"AnyStringHere"}');
     });
   });
@@ -303,7 +303,7 @@ describe("parser unit tests", () => {
           type: "array",
           items: { type: "string" },
         };
-        const result = parseArray(schema, new Map());
+        const result = parseArray(schema, new Map(), false);
         expect(result).toContain(`Type.Array`);
       });
 
@@ -312,7 +312,7 @@ describe("parser unit tests", () => {
           type: "array",
           items: { type: "string", description: "test description" },
         };
-        const result = parseArray(schema, new Map());
+        const result = parseArray(schema, new Map(), false);
         expect(result).toContain(
           JSON.stringify({ description: "test description" })
         );
@@ -325,7 +325,7 @@ describe("parser unit tests", () => {
           type: "array",
           items: [{ type: "string" }, { type: "null" }],
         };
-        const result = parseArray(schema, new Map());
+        const result = parseArray(schema, new Map(), false);
         expect(result).toContain(`Type.Array(Type.Union`);
         expect(result).toContain(`Type.String`);
         expect(result).toContain(`Type.Null`);
@@ -339,7 +339,7 @@ describe("parser unit tests", () => {
             { type: "number", minimum: 1 },
           ],
         };
-        const result = parseArray(schema, new Map());
+        const result = parseArray(schema, new Map(), false);
         expect(result).toContain(
           JSON.stringify({ description: "test description" })
         );
@@ -352,7 +352,7 @@ describe("parser unit tests", () => {
         const schema: ArraySchema = {
           type: "array",
         };
-        const result = parseArray(schema, new Map());
+        const result = parseArray(schema, new Map(), false);
         expect(result).toContain(`Type.Array`);
         expect(result).toContain(`Type.Unknown`);
       });
@@ -362,7 +362,7 @@ describe("parser unit tests", () => {
           type: "array",
           description: "test description",
         };
-        const result = parseArray(schema, new Map());
+        const result = parseArray(schema, new Map(), false);
         expect(result).toContain(
           JSON.stringify({ description: "test description" })
         );
@@ -375,7 +375,7 @@ describe("parser unit tests", () => {
       const schema: MultipleTypesSchema = {
         type: ["string"],
       };
-      const result = parseWithMultipleTypes(schema, new Map());
+      const result = parseWithMultipleTypes(schema, new Map(), false);
       expect(result).toContain(`Type.Union`);
     });
 
@@ -383,7 +383,7 @@ describe("parser unit tests", () => {
       const schema: MultipleTypesSchema = {
         type: ["string", "null"],
       };
-      const result = parseWithMultipleTypes(schema, new Map());
+      const result = parseWithMultipleTypes(schema, new Map(), false);
       expect(result).toContain(`Type.Union`);
       expect(result).toContain(`Type.String`);
       expect(result).toContain(`Type.Null`);
@@ -394,7 +394,7 @@ describe("parser unit tests", () => {
         type: ["object", "null"],
         properties: {},
       };
-      const result = parseWithMultipleTypes(schema, new Map());
+      const result = parseWithMultipleTypes(schema, new Map(), false);
       await expectEqualIgnoreFormatting(
         result,
         `Type.Union([Type.Object({}), Type.Null()])`
@@ -406,7 +406,7 @@ describe("parser unit tests", () => {
         type: ["array", "null"],
         items: { type: "string" },
       };
-      const result = parseWithMultipleTypes(schema, new Map());
+      const result = parseWithMultipleTypes(schema, new Map(), false);
       await expectEqualIgnoreFormatting(
         result,
         `Type.Union([Type.Array(Type.String()),Type.Null()])`
@@ -419,7 +419,7 @@ describe("parser unit tests", () => {
       const schema: ConstSchema = {
         const: "1",
       };
-      const result = parseConst(schema);
+      const result = parseConst(schema, false);
       expect(result).toContain(`Type.Literal`);
     });
 
@@ -427,7 +427,7 @@ describe("parser unit tests", () => {
       const schema: ConstSchema = {
         const: "1",
       };
-      const result = parseConst(schema);
+      const result = parseConst(schema, false);
       expect(result).toContain(`"1"`);
     });
 
@@ -435,7 +435,7 @@ describe("parser unit tests", () => {
       const schema: ConstSchema = {
         const: 1,
       };
-      const result = parseConst(schema);
+      const result = parseConst(schema, false);
       expect(result).toContain(`1`);
       expect(result).not.toContain(`"1"`);
     });
@@ -444,7 +444,7 @@ describe("parser unit tests", () => {
       const schema: ConstSchema = {
         const: [1, null],
       };
-      const result = parseConst(schema);
+      const result = parseConst(schema, false);
       expect(result).toContain(`Type.Union`);
       expect(result).toContain(`Type.Literal`);
       expect(result).toContain(`1`);

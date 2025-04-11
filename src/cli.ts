@@ -11,6 +11,7 @@ export const runCli = async () => {
       input: "i",
       output: "o",
       help: "h",
+      protobuf: "p",
     },
     default: {
       input: DEFAULT_INPUT_FILE_NAME,
@@ -32,6 +33,7 @@ export const runCli = async () => {
           return readFileSync(file, "utf-8");
         })
       : readFileSync(inputPath, "utf-8"),
+    protobuf: args.protobuf,
   });
 
   if (args["output-stdout"]) {
@@ -76,4 +78,7 @@ export const HELP_TEXT = `
     --output-stdout
        Does not generate an output file and prints the generated code to stdout
        instead. Has precedence over -o/--output.
+
+    --protobuf
+       Modify output to fix protoschema-jsonschema issues.
  `;

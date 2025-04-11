@@ -38,7 +38,7 @@ type Code = string;
 type ModuleEntries = Map<string, Code>;
 
 /** Generates TypeBox code from a given JSON schema */
-export const schema2typebox = async (jsonSchema: string | string[]) => {
+export const schema2typebox = async (jsonSchema: string | string[], protobuf: boolean) => {
   const entries: ModuleEntries = new Map<string, Code>();
   const schemas = Array.isArray(jsonSchema) ? jsonSchema : [jsonSchema];
   const parsedSchemas = await Promise.all(
@@ -50,7 +50,7 @@ export const schema2typebox = async (jsonSchema: string | string[]) => {
   );
   for (let i = 0; i < parsedSchemas.length; i++) {
     const parsedSchema = parsedSchemas[i]!;
-    parseSchema(parsedSchema, entries);
+    parseSchema(parsedSchema, entries, protobuf);
   }
   const typeBoxType = Array.from(entries.entries())
     .map(([key, value]) => {
@@ -73,7 +73,8 @@ ${typeAliases}`;
 
 const parseSchema = (
   dereferencedSchema: JSONSchema7Definition,
-  entries: ModuleEntries
+  entries: ModuleEntries,
+  protobuf: boolean
 ) => {
   const exportedName = createExportNameForSchema(dereferencedSchema);
 
@@ -85,7 +86,7 @@ const parseSchema = (
   ) {
     dereferencedSchema.$id = exportedName;
   }
-  collect(dereferencedSchema, entries);
+  collect(dereferencedSchema, entries, protobuf);
 };
 
 /**
@@ -96,7 +97,8 @@ const parseSchema = (
  */
 export const collect = (
   schema: JSONSchema7Definition,
-  entries: ModuleEntries
+  entries: ModuleEntries,
+  protobuf: boolean,
 ): Code => {
   if (typeof schema === "object" && schema.$id !== undefined) {
     const exportedName = createExportNameForSchema(schema);
@@ -113,27 +115,27 @@ export const collect = (
     if (isBoolean(schema)) {
       return JSON.stringify(schema);
     } else if (isObjectSchema(schema)) {
-      return parseObject(schema, entries);
+      return parseObject(schema, entries, protobuf);
     } else if (isEnumSchema(schema)) {
-      return parseEnum(schema);
+      return parseEnum(schema, protobuf);
     } else if (isAnyOfSchema(schema)) {
-      return parseAnyOf(schema, entries);
+      return parseAnyOf(schema, entries, protobuf);
     } else if (isAllOfSchema(schema)) {
-      return parseAllOf(schema, entries);
+      return parseAllOf(schema, entries, protobuf);
     } else if (isOneOfSchema(schema)) {
-      return parseOneOf(schema, entries);
+      return parseOneOf(schema, entries, protobuf);
     } else if (isNotSchema(schema)) {
-      return parseNot(schema, entries);
+      return parseNot(schema, entries, protobuf);
     } else if (isArraySchema(schema)) {
-      return parseArray(schema, entries);
+      return parseArray(schema, entries, protobuf);
     } else if (isSchemaWithMultipleTypes(schema)) {
-      return parseWithMultipleTypes(schema, entries);
+      return parseWithMultipleTypes(schema, entries, protobuf);
     } else if (isConstSchema(schema)) {
-      return parseConst(schema);
+      return parseConst(schema, protobuf);
     } else if (isUnknownSchema(schema)) {
       return parseUnknown(schema);
     } else if (schema.type !== undefined && !Array.isArray(schema.type)) {
-      return parseTypeName(schema.type, schema, entries);
+      return parseTypeName(schema.type, schema, entries, protobuf);
     }
     throw new Error(
       `Unsupported schema. Did not match any type of the parsers. Schema was: ${JSON.stringify(
@@ -215,8 +217,8 @@ const addOptionalModifier = (
     : `Type.Optional(${code})`;
 };
 
-export const parseObject = (schema: ObjectSchema, entries: ModuleEntries) => {
-  const schemaOptions = parseSchemaOptions(schema);
+export const parseObject = (schema: ObjectSchema, entries: ModuleEntries, protobuf: boolean) => {
+  const schemaOptions = parseSchemaOptions(schema, protobuf);
   const properties = schema.properties;
   const requiredProperties = schema.required;
   if (properties === undefined) {
@@ -232,7 +234,7 @@ export const parseObject = (schema: ObjectSchema, entries: ModuleEntries) => {
   const code = attributes
     .map(([propertyName, schema]) => {
       return `"${propertyName}": ${addOptionalModifier(
-        collect(schema, entries),
+        collect(schema, entries, protobuf),
         propertyName,
         requiredProperties
       )}`;
@@ -243,8 +245,8 @@ export const parseObject = (schema: ObjectSchema, entries: ModuleEntries) => {
     : `Type.Object({${code}}, ${schemaOptions})`;
 };
 
-export const parseEnum = (schema: EnumSchema) => {
-  const schemaOptions = parseSchemaOptions(schema);
+export const parseEnum = (schema: EnumSchema, protobuf: boolean) => {
+  const schemaOptions = parseSchemaOptions(schema, protobuf);
   const code = schema.enum.reduce<string>((acc, schema) => {
     return acc + `${acc === "" ? "" : ","} ${parseType(schema)}`;
   }, "");
@@ -253,8 +255,8 @@ export const parseEnum = (schema: EnumSchema) => {
     : `Type.Union([${code}], ${schemaOptions})`;
 };
 
-export const parseConst = (schema: ConstSchema): Code => {
-  const schemaOptions = parseSchemaOptions(schema);
+export const parseConst = (schema: ConstSchema, protobuf: boolean): Code => {
+  const schemaOptions = parseSchemaOptions(schema, protobuf);
   if (Array.isArray(schema.const)) {
     const code = schema.const.reduce<string>((acc, schema) => {
       return acc + `${acc === "" ? "" : ",\n"} ${parseType(schema)}`;
@@ -300,11 +302,12 @@ export const parseType = (type: JSONSchema7Type): Code => {
 
 export const parseAnyOf = (
   schema: AnyOfSchema,
-  entries: ModuleEntries
+  entries: ModuleEntries,
+  protobuf: boolean
 ): Code => {
-  const schemaOptions = parseSchemaOptions(schema);
+  const schemaOptions = parseSchemaOptions(schema, protobuf);
   const code = schema.anyOf.reduce<string>((acc, schema) => {
-    return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries)}`;
+    return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries, protobuf)}`;
   }, "");
   return schemaOptions === undefined
     ? `Type.Union([${code}])`
@@ -313,11 +316,12 @@ export const parseAnyOf = (
 
 export const parseAllOf = (
   schema: AllOfSchema,
-  entries: ModuleEntries
+  entries: ModuleEntries,
+  protobuf: boolean
 ): Code => {
-  const schemaOptions = parseSchemaOptions(schema);
+  const schemaOptions = parseSchemaOptions(schema, protobuf);
   const code = schema.allOf.reduce<string>((acc, schema) => {
-    return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries)}`;
+    return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries, protobuf)}`;
   }, "");
   return schemaOptions === undefined
     ? `Type.Intersect([${code}])`
@@ -326,39 +330,41 @@ export const parseAllOf = (
 
 export const parseOneOf = (
   schema: OneOfSchema,
-  entries: ModuleEntries
+  entries: ModuleEntries,
+  protobuf: boolean
 ): Code => {
-  const schemaOptions = parseSchemaOptions(schema);
+  const schemaOptions = parseSchemaOptions(schema, protobuf);
   const code = schema.oneOf.reduce<string>((acc, schema) => {
-    return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries)}`;
+    return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries, protobuf)}`;
   }, "");
   return schemaOptions === undefined
     ? `OneOf([${code}])`
     : `OneOf([${code}], ${schemaOptions})`;
 };
 
-export const parseNot = (schema: NotSchema, entries: ModuleEntries): Code => {
-  const schemaOptions = parseSchemaOptions(schema);
+export const parseNot = (schema: NotSchema, entries: ModuleEntries, protobuf: boolean): Code => {
+  const schemaOptions = parseSchemaOptions(schema, protobuf);
   return schemaOptions === undefined
-    ? `Type.Not(${collect(schema.not, entries)})`
-    : `Type.Not(${collect(schema.not, entries)}, ${schemaOptions})`;
+    ? `Type.Not(${collect(schema.not, entries, protobuf)})`
+    : `Type.Not(${collect(schema.not, entries, protobuf)}, ${schemaOptions})`;
 };
 
 export const parseArray = (
   schema: ArraySchema,
-  entries: ModuleEntries
+  entries: ModuleEntries,
+  protobuf: boolean
 ): Code => {
-  const schemaOptions = parseSchemaOptions(schema);
+  const schemaOptions = parseSchemaOptions(schema, protobuf);
   if (Array.isArray(schema.items)) {
     const code = schema.items.reduce<string>((acc, schema) => {
-      return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries)}`;
+      return acc + `${acc === "" ? "" : ",\n"} ${collect(schema, entries, protobuf)}`;
     }, "");
     return schemaOptions === undefined
       ? `Type.Array(Type.Union(${code}))`
       : `Type.Array(Type.Union(${code}),${schemaOptions})`;
   }
   const itemsType = schema.items
-    ? collect(schema.items, entries)
+    ? collect(schema.items, entries, protobuf)
     : "Type.Unknown()";
   return schemaOptions === undefined
     ? `Type.Array(${itemsType})`
@@ -367,12 +373,13 @@ export const parseArray = (
 
 export const parseWithMultipleTypes = (
   schema: MultipleTypesSchema,
-  entries: ModuleEntries
+  entries: ModuleEntries,
+  protobuf: boolean
 ): Code => {
   const code = schema.type.reduce<string>((acc, typeName) => {
     return (
       acc +
-      `${acc === "" ? "" : ",\n"} ${parseTypeName(typeName, schema, entries)}`
+      `${acc === "" ? "" : ",\n"} ${parseTypeName(typeName, schema, entries, protobuf)}`
     );
   }, "");
   return `Type.Union([${code}])`;
@@ -381,9 +388,10 @@ export const parseWithMultipleTypes = (
 export const parseTypeName = (
   type: JSONSchema7TypeName,
   schema: JSONSchema7 = {},
-  entries: ModuleEntries = new Map()
+  entries: ModuleEntries = new Map(),
+  protobuf: boolean = false,
 ): Code => {
-  const schemaOptions = parseSchemaOptions(schema);
+  const schemaOptions = parseSchemaOptions(schema, protobuf);
   if (type === "number" || type === "integer") {
     return schemaOptions === undefined
       ? "Type.Number()"
@@ -401,17 +409,22 @@ export const parseTypeName = (
       ? "Type.Null()"
       : `Type.Null(${schemaOptions})`;
   } else if (type === "object") {
-    return parseObject(schema as ObjectSchema, entries);
+    return parseObject(schema as ObjectSchema, entries, protobuf);
     // We don't want to trust on build time checking here, json can contain anything
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   } else if (type === "array") {
-    return parseArray(schema as ArraySchema, entries);
+    return parseArray(schema as ArraySchema, entries, protobuf);
   }
   throw new Error(`Should never happen..? parseType got type: ${type}`);
 };
 
-const parseSchemaOptions = (schema: JSONSchema7): Code | undefined => {
+const parseSchemaOptions = (schema: JSONSchema7, protobuf: boolean): Code | undefined => {
   const properties = Object.entries(schema).filter(([key, _value]) => {
+    if (protobuf) {
+      if (key === "additionalProperties") {
+        return false;
+      }
+    }
     return (
       // NOTE: To be fair, not sure if we should filter out the title. If this
       // makes problems one day, think about not filtering it.
@@ -425,7 +438,9 @@ const parseSchemaOptions = (schema: JSONSchema7): Code | undefined => {
       key !== "properties" &&
       key !== "required" &&
       key !== "const" &&
-      key !== "enum"
+      key !== "enum" &&
+      key !== "patternProperties" &&
+      key !== "$defs"
     );
   });
   if (properties.length === 0) {

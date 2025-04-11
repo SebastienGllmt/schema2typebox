@@ -7,6 +7,10 @@ export type Schema2TypeboxOptions = {
    * The given JSON schema as utf-8 encoded string.
    */
   input: string | string[];
+  /**
+   * Cleanup protobuf generated input
+   */
+  protobuf?: boolean;
 };
 
 /**
@@ -19,8 +23,9 @@ export type Schema2TypeboxOptions = {
  **/
 export const schema2typebox = async ({
   input,
+  protobuf,
 }: Schema2TypeboxOptions): Promise<string> => {
-  const generatedTypeboxCode = await Schema2Typebox(input);
+  const generatedTypeboxCode = await Schema2Typebox(input, protobuf ?? false);
 
   // post-processing (formatting)
   const explorer = cosmiconfig("prettier");
