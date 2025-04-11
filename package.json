@@ -26,6 +26,11 @@
     "type": "git",
     "url": "git+https://github.com/xddq/schema2typebox.git"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "keywords": [
     "JSON schema",
     "schema2typebox",
