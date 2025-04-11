@@ -1,5 +1,5 @@
 {
-  "name": "schema2typebox",
+  "name": "@paima/schema2typebox",
   "version": "1.9.0",
   "main": "dist/src/index.js",
   "description": "Creates typebox code from JSON schemas",
